@@ -82,5 +82,28 @@ A primera vista esto se ve espectacular. **No lo tomamos así**, por la razón e
 1. Repetir el mismo test en 2-3 pares adicionales del mismo sector (ej. otras petroleras integradas) para ver si el patrón se repite — eso aumentaría el n efectivo de forma legítima (distinto de solo extender la ventana del mismo par).
 2. Si hay presupuesto de tiempo, conseguir más historia de XOM/CVX (más allá de los ~14 meses disponibles vía la API en este entorno) para tener más episodios independientes del mismo par.
 
+## Ampliación de la muestra — 2026-09-16
+
+Se repitió exactamente el mismo test (z-score rodante 20d, horizonte 10d, umbral |z|≥1.5, solo eventos no solapados) en 3 pares adicionales del sector petrolero, datos diarios reales de TradingView, mismo periodo (2025-07 a 2026-09):
+
+| Par | Correlación de retornos | Eventos independientes | Tasa de reversión | Correlación z vs. cambio futuro |
+|---|---|---|---|---|
+| XOM-CVX (original) | 0.824 | 18 | 55.6% | **−0.406** (dirección correcta) |
+| COP-XOM (nuevo) | 0.797 | 19 | 47.4% | **+0.081** (dirección INCORRECTA) |
+| COP-CVX (nuevo) | 0.811 | 19 | 57.9% | **+0.164** (dirección INCORRECTA) |
+| SHEL-BP (nuevo, majors europeas) | 0.786 | 17 | 47.1% | −0.216 (dirección correcta, débil) |
+| **Pool combinado (4 pares)** | — | **73** | **52.1%** | **−0.069** |
+
+**Test de permutación sobre el pool combinado (73 eventos, 20.000 reordenamientos): p = 0.563.**
+
+### Lectura honesta — esto cambia el veredicto
+
+El resultado favorable de XOM-CVX **no se replicó** en ninguno de los otros tres pares. Dos de los cuatro (COP-XOM, COP-CVX) mostraron el signo *contrario* al que predice la hipótesis de reversión a la media. Con la muestra ampliada a 73 eventos independientes — ahora sí por encima del mínimo de ~30 — el resultado combinado es indistinguible del azar (p=0.56, correlación prácticamente cero).
+
+Esto es exactamente el patrón de un **falso positivo por comparaciones múltiples**: al probar 4 pares, es estadísticamente esperable que al menos uno muestre una correlación fuerte por puro azar, y XOM-CVX fue ese caso. El AED inicial (con n=18, un solo par) no tenía forma de distinguir esto de una señal real — por eso el proceso de validación exige ampliar la muestra antes de sacar conclusiones, y aquí se ve por qué: la conclusión cambió por completo al hacerlo.
+
+### Veredicto actualizado
+**RECHAZAR** esta especificación de la estrategia (z-score de 20 días, horizonte de 10 días, umbral 1.5, en este universo de petroleras integradas). No hay edge estadísticamente distinguible del azar una vez corregido por el sesgo de selección de un solo par favorable. Esto no descarta el trading de pares como categoría — otros sectores, otras ventanas de tiempo, u otra formalización (ej. cointegración formal en vez de z-score simple) podrían comportarse distinto — pero sí descarta específicamente lo que se probó aquí.
+
 ## Siguiente paso sugerido
-No pasar aún al paso 03. Repetir el AED en 2-3 pares adicionales del mismo sector para acumular evidencia independiente antes de fijar el umbral de entrada exacto — la dirección del efecto es prometedora, pero el n real (18) es insuficiente para comprometerse a una regla de código todavía.
+No pasar al paso 03 con esta especificación — está rechazada tras la ampliación de muestra. Si se quiere seguir con trading de pares, la vía honesta es empezar de nuevo con una formalización distinta (cointegración de Engle-Granger, u otro sector/universo) y volver a correr el AED completo, no reutilizar estos parámetros.
