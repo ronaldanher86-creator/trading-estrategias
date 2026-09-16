@@ -11,6 +11,7 @@ En trading sistemático, la supervivencia de largo plazo depende más de la **ge
 docs/
   ideas/               Hipótesis de estrategias nuevas (formato en trading-strategy-researcher)
   validacion_estrategias.md   Proceso de validación obligatorio para toda estrategia
+  reportes/            Reportes periódicos de desempeño (trading-performance-reporter)
 Include/
   RiskManager.mqh      Módulo de riesgo reutilizable: sizing, circuit breaker diario y de cuenta
 pine/                  Fuentes Pine Script v6 (indicadores/estrategias)
@@ -37,7 +38,9 @@ Cada estrategia pasa por los mismos 8 pasos, en el mismo orden (detalle completo
 
 Gate transversal (aplica en 03-06 y antes de 08): **`trading-code-reviewer`** — revisa look-ahead bias, repainting, manejo de horario/sesión, gestión de órdenes y que el circuit breaker de `Include/RiskManager.mqh` esté realmente integrado, no solo documentado.
 
-Invócalos por nombre para avanzar un paso concreto, por ejemplo: *"usa trading-strategy-researcher para revisar la serie Systematic Pill y proponer 2-3 ideas"*, *"pásale la hipótesis a trading-data-analyst para el AED"*, o *"pásale ELON_SpaceX_v1.mq5 a trading-code-reviewer antes de probarlo en demo"*.
+Agente continuo (fuera de los 8 pasos, corre después de 08 mientras la estrategia esté viva): **`trading-performance-reporter`** — genera reportes periódicos (semanal/mensual) de desempeño real de todo el portafolio vs. lo esperado en la validación de cada estrategia, guardados en `docs/reportes/`. Complementa a `trading-deploy-monitor`: este último decide si hay señal de alerta de edge decay, el reportero produce el registro histórico honesto de números reales vs. esperados.
+
+Invócalos por nombre para avanzar un paso concreto, por ejemplo: *"usa trading-strategy-researcher para revisar la serie Systematic Pill y proponer 2-3 ideas"*, *"pásale la hipótesis a trading-data-analyst para el AED"*, *"pásale ELON_SpaceX_v1.mq5 a trading-code-reviewer antes de probarlo en demo"*, o *"genera el reporte semanal con trading-performance-reporter"*.
 
 ## Estado actual
 Ver [`ESTRATEGIAS.md`](ESTRATEGIAS.md). A la fecha, `ELON_SpaceX_v1.mq5` está portado desde Pine Script pero **no compilado, no integrado con el módulo de riesgo, y no validado estadísticamente en este repo** — es el primer candidato a pasar por el flujo completo.

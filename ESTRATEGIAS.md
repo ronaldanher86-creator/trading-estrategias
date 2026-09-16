@@ -18,6 +18,9 @@ Los 8 pasos del Método TIS: **01** Hipótesis 🟢 · **02** AED 🟢 · **03**
 7. `trading-deploy-monitor` define el plan de incubación en demo y el monitoreo de edge decay — **08 Deploy**.
 8. Se agrega/actualiza la fila correspondiente en esta tabla en cada paso, no solo al final.
 
+## Reportes de desempeño
+Una vez una estrategia llega a **08 · Deploy**, `trading-performance-reporter` genera reportes periódicos (semanal/mensual) en [`docs/reportes/`](docs/reportes/) comparando desempeño real vs. lo esperado en su validación (pasos 04-07). Es el registro histórico del portafolio — para alertas de degradación del edge en vivo, ver `trading-deploy-monitor`.
+
 ## Nota sobre ELON SpaceX v1
 El propio header del archivo indica que fue portado 1:1 desde Pine Script preservando los valores por defecto ya ajustados en TradingView, pero que **no está compilado ni verificado en MetaEditor**. Antes de considerarla para demo:
 - [ ] Compilar en MetaEditor sin errores.
