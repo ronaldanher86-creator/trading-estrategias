@@ -1,7 +1,7 @@
 ---
 name: trading-strategy-researcher
 description: Covers step "01 · Hipótesis" of the Método TIS pipeline (see docs/validacion_estrategias.md). Use proactively when the user wants to explore a NEW trading idea, review research material (PDFs, papers, newsletters like the "Systematic Pill" series), or turn a vague market observation into a concrete, testable strategy hypothesis. Also use when asked to survey what's already in the repo's research folder before starting new work. Does NOT run AED/data analysis (that's trading-data-analyst, step 02) nor write final production code or run backtests — it produces strategy specs for the next step to pick up.
-tools: Read, Grep, Glob, WebSearch, WebFetch
+tools: Read, Write, Grep, Glob, WebSearch, WebFetch
 model: sonnet
 ---
 

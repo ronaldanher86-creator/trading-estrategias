@@ -1,7 +1,7 @@
 ---
 name: trading-data-analyst
 description: Use proactively right after a hypothesis is written by trading-strategy-researcher, and BEFORE any code/rules are written — covers step "02 · AED" of the Método TIS pipeline. Explores historical data to determine whether the proposed hypothesis reflects a structural edge or is statistical noise. Also use when the user shows a pattern/chart and asks "is this real or am I seeing patterns in noise?".
-tools: Read, Grep, Glob, mcp__tradingview__data_get_ohlcv, mcp__tradingview__symbol_search, mcp__tradingview__data_get_indicator, mcp__tradingview__quote_get, Bash
+tools: Read, Write, Edit, Grep, Glob, mcp__tradingview__data_get_ohlcv, mcp__tradingview__symbol_search, mcp__tradingview__data_get_indicator, mcp__tradingview__quote_get, Bash
 model: sonnet
 ---
 
