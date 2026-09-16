@@ -44,5 +44,43 @@ Cuando la correlación histórica se rompe estructuralmente (ej. una de las dos 
 - **Capacidad/liquidez**: si el par elegido tiene poco volumen, el slippage en ambas piernas puede erosionar el edge; y dado que la estrategia depende de vender en corto, verificar que el bróker/plataforma del usuario permita cortos en las acciones elegidas.
 - **Edge decreciente documentado en la propia literatura citada** — no asumir que el resultado de un estudio de hace años se sostiene igual hoy.
 
+## AED (paso 02) — 2026-09-16
+
+**Par elegido:** XOM (ExxonMobil) vs. CVX (Chevron) — las dos mayores petroleras integradas de EE.UU., mismo sector, expuestas a los mismos factores (precio del crudo, refino, regulación energética). Datos diarios reales de TradingView, **2025-07-09 a 2026-09-16 (300 barras, ~14 meses)**.
+
+### Paso 1 — ¿es un par legítimo?
+Correlación de retornos diarios XOM-CVX: **0.824**. Alta, como se espera de dos comparables directos del mismo sector — confirma que tiene sentido tratarlas como un par antes de testear la reversión del spread.
+
+### Paso 2 — ¿revierte el spread?
+Se construyó el spread como retorno acumulado relativo (ln(XOM/XOM₀) − ln(CVX/CVX₀)), con z-score sobre ventana rodante de 20 días, y se midió el cambio del spread 10 días después de cada evento con |z| ≥ 1.5.
+
+**Primer resultado (ingenuo, ventanas solapadas):**
+- 89 eventos de señal sobre 270 observaciones.
+- Tasa de reversión: 60.7%. Correlación z(t) vs. cambio futuro: **−0.27** (el signo negativo esperado).
+- Test de permutación (20.000 reordenamientos): **p = 0.0000**.
+
+A primera vista esto se ve espectacular. **No lo tomamos así**, por la razón exacta que señala `docs/validacion_estrategias.md` sobre autocorrelación: la ventana rodante de 20 días y el horizonte de 10 días hacen que eventos consecutivos compartan casi todos sus datos — no son 89 observaciones independientes, son ~89 vistazos muy correlacionados a un puñado real de episodios de divergencia del spread. Un p-valor de 0.0000 calculado sobre datos así de autocorrelacionados no significa lo que parece significar.
+
+**Corrección (eventos no solapados, la cifra real):**
+- Al exigir que cada evento nuevo empiece después de que termine la ventana del anterior, quedan **18 eventos independientes** (no 89).
+- Tasa de reversión: 55.6% (10/18). Correlación z vs. cambio futuro: **−0.41** (dirección correcta, y de mayor magnitud).
+- Test de permutación sobre estos 18: **p = 0.097** — ya no es significativo al umbral convencional de 0.05, aunque está cerca y la dirección es consistente.
+
+### Lectura honesta
+- La dirección del efecto es la que predice la hipótesis (reversión), en ambas versiones del test — eso es alentador.
+- Pero el tamaño de muestra real (18 eventos independientes) está **por debajo del mínimo de ~30** que fija `docs/validacion_estrategias.md` para una conclusión fuerte. El resultado "espectacular" inicial (p=0.0000) era en buena parte un artefacto de tratar observaciones solapadas como si fueran independientes — exactamente el tipo de error que hay que evitar.
+- Periodo corto: 14 meses es una sola ventana de mercado (incluye al menos un salto conjunto grande de ambas acciones a fines de enero, probablemente una noticia sectorial — consistente con que XOM/CVX se mueven juntas por factores comunes, que es la premisa del par, pero también significa que gran parte del "aprendizaje" viene de pocos episodios, no de un régimen largo).
+- El P&L simulado (retorno medio +0.69% por evento no solapado, sin costos de transacción ni de préstamo del corto) es ilustrativo, no una validación — eso corresponde al paso 04 (Backtest) con reglas ya codificadas.
+
+### Sesgos y limitaciones
+- Un solo par, un solo periodo de 14 meses — no se probó en otros pares del sector ni en otros periodos.
+- Sin costos: comisión, spread, y especialmente el costo de pedir prestada la acción para la pata corta, no están incluidos.
+- La ventana (20d) y el horizonte (10d) y el umbral (|z|≥1.5) fueron elegidos por convención razonable, no optimizados — lo cual es correcto para un AED (evita curve-fitting prematuro), pero significa que no se ha explorado si otra combinación da una lectura distinta.
+
+### Recomendación
+**Evidencia preliminar, direccionalmente favorable, pero no concluyente.** A diferencia del momentum (idea 002, resultado nulo claro), aquí hay una señal real que vale la pena perseguir, pero no alcanza el umbral para pasar directo al paso 03. Antes de codificar reglas:
+1. Repetir el mismo test en 2-3 pares adicionales del mismo sector (ej. otras petroleras integradas) para ver si el patrón se repite — eso aumentaría el n efectivo de forma legítima (distinto de solo extender la ventana del mismo par).
+2. Si hay presupuesto de tiempo, conseguir más historia de XOM/CVX (más allá de los ~14 meses disponibles vía la API en este entorno) para tener más episodios independientes del mismo par.
+
 ## Siguiente paso sugerido
-Pasar a `trading-data-analyst` (paso 02, AED) sobre 2-3 pares candidatos con alta correlación histórica conocida (ej. dentro del mismo sector que ya sigue el usuario), para confirmar que la relación de cointegración/correlación sigue vigente en datos recientes antes de fijar el umbral de entrada exacto en el paso 03.
+No pasar aún al paso 03. Repetir el AED en 2-3 pares adicionales del mismo sector para acumular evidencia independiente antes de fijar el umbral de entrada exacto — la dirección del efecto es prometedora, pero el n real (18) es insuficiente para comprometerse a una regla de código todavía.
