@@ -19,17 +19,25 @@ ESTRATEGIAS.md         Registro vivo del estado de cada estrategia
 ELON_SpaceX_v1.mq5     EA existente: ruptura de Initial Balance sobre SPCX (ver ESTRATEGIAS.md)
 ```
 
-## Flujo de trabajo (agentes)
-El desarrollo de una estrategia nueva pasa por 5 subagentes, cada uno con un rol acotado y responsabilidad clara:
+## Flujo de trabajo — Método TIS (8 pasos)
+> Una estrategia es una línea de producción. Entra una premisa. Sale una estrategia validada. Siempre el mismo método, cambia el activo.
 
-1. **`trading-strategy-researcher`** — convierte una idea/observación/paper en una hipótesis testeable con regla de entrada/salida explícita y régimen de fallo esperado.
-2. **`pinescript-developer`** — prototipa y compila la estrategia en Pine Script v6, probándola en vivo sobre el chart de TradingView vía MCP (compila, lee errores, lee resultados del Strategy Tester).
-3. **`trading-quant-backtester`** — valida estadísticamente: split in-sample/out-of-sample, walk-forward, test de robustez/anti-overfitting, costos realistas. Emite veredicto: RECHAZAR / ITERAR / PROMOVER A RISK-SIZING.
-4. **`trading-risk-manager`** — define tamaño de posición y presupuesto de riesgo dentro del portafolio completo (no solo por estrategia aislada), y mantiene el circuit breaker de pérdida.
-5. **`mql5-developer`** — porta la estrategia validada a un EA de MetaTrader 5, siguiendo las convenciones ya establecidas en `ELON_SpaceX_v1.mq5` (inputs agrupados, horario de servidor calibrado y comentado, magic number, modos de sizing).
-6. **`trading-code-reviewer`** — última puerta antes de demo: revisa específicamente look-ahead bias, repainting, manejo de horario/sesión, gestión de órdenes y que el circuit breaker de riesgo esté realmente integrado (no solo documentado).
+Cada estrategia pasa por los mismos 8 pasos, en el mismo orden (detalle completo en [`docs/validacion_estrategias.md`](docs/validacion_estrategias.md)). 🟠 = lo ejecuta la IA en horas. 🟢 = criterio: lo decides tú, o no lo decide nadie.
 
-Invócalos por nombre cuando quieras avanzar una etapa concreta, por ejemplo: *"usa trading-strategy-researcher para revisar la serie Systematic Pill y proponer 2-3 ideas"*, o *"pásale ELON_SpaceX_v1.mq5 a trading-code-reviewer antes de probarlo en demo"*.
+| # | Paso | Agente | Color |
+|---|---|---|---|
+| 01 | Hipótesis — core logic, qué explotas y por qué existe | `trading-strategy-researcher` | 🟢 |
+| 02 | AED — ¿edge estructural o ruido? | `trading-data-analyst` | 🟢 |
+| 03 | Reglas — entrada, salida, filtros, riesgo, en código | `pinescript-developer` / `mql5-developer` | 🟠 |
+| 04 | Backtest — IS/OOS, el OOS se usa una sola vez | `trading-quant-backtester` | 🟠 |
+| 05 | Optimización — sensibilidad de parámetros, meseta no pico | `trading-quant-backtester` | 🟠 |
+| 06 | Robustez — stress test, Montecarlo, costos reales | `trading-quant-backtester` | 🟠 |
+| 07 | Sizing · RM — cuánto riesgo, drawdown esperado, portafolio | `trading-risk-manager` | 🟢 |
+| 08 | Deploy — incubación en demo, servidor, monitoreo del edge | `trading-deploy-monitor` | 🟢 |
+
+Gate transversal (aplica en 03-06 y antes de 08): **`trading-code-reviewer`** — revisa look-ahead bias, repainting, manejo de horario/sesión, gestión de órdenes y que el circuit breaker de `Include/RiskManager.mqh` esté realmente integrado, no solo documentado.
+
+Invócalos por nombre para avanzar un paso concreto, por ejemplo: *"usa trading-strategy-researcher para revisar la serie Systematic Pill y proponer 2-3 ideas"*, *"pásale la hipótesis a trading-data-analyst para el AED"*, o *"pásale ELON_SpaceX_v1.mq5 a trading-code-reviewer antes de probarlo en demo"*.
 
 ## Estado actual
 Ver [`ESTRATEGIAS.md`](ESTRATEGIAS.md). A la fecha, `ELON_SpaceX_v1.mq5` está portado desde Pine Script pero **no compilado, no integrado con el módulo de riesgo, y no validado estadísticamente en este repo** — es el primer candidato a pasar por el flujo completo.

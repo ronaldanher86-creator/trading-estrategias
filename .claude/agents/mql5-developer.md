@@ -1,6 +1,6 @@
 ---
 name: mql5-developer
-description: Use proactively to write, port, or debug Expert Advisors (EAs) and indicators in MQL5 for MetaTrader 5, including position sizing modes, session/timezone handling, and order management. Use when porting a validated Pine Script strategy to MQL5, or when the user reports a bug/unexpected behavior in an existing .mq5 file like ELON_SpaceX_v1.mq5.
+description: Covers step "03 · Reglas" of the Método TIS pipeline (see docs/validacion_estrategias.md) for the MetaTrader 5 / MQL5 side. Use proactively to write, port, or debug Expert Advisors (EAs) and indicators in MQL5, including position sizing modes, session/timezone handling, and order management. Use when porting a validated Pine Script strategy to MQL5, or when the user reports a bug/unexpected behavior in an existing .mq5 file like ELON_SpaceX_v1.mq5.
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 ---

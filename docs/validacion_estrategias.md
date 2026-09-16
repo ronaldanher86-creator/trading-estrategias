@@ -1,51 +1,64 @@
-# Marco de validación de estrategias
+# Método TIS — línea de producción de estrategias
 
-Este documento define el proceso que **toda** estrategia de este repositorio debe pasar antes de considerarse apta para demo/forward test, y luego para cuenta real. Es la referencia que usa el agente `trading-quant-backtester` y el criterio con el que `trading-risk-manager` decide el tamaño de posición.
+> Una estrategia es una línea de producción. Entra una premisa. Sale una estrategia validada.
+> Siempre el mismo método. Cambia el activo.
 
-No existe una estrategia "rentable" hasta que sobrevive este proceso completo. Un backtest bonito in-sample no es evidencia suficiente — la mayoría de las estrategias que se ven bien en un solo backtest fallan en datos nuevos.
+Toda estrategia de este repo pasa por los mismos 8 pasos, en el mismo orden, sin saltarse ninguno. Lo único que cambia entre estrategias es el activo y la premisa de entrada — el proceso es idéntico siempre. Eso es lo que lo hace repetible y lo que evita que una estrategia se apruebe "porque se ve bien", sin haber pasado por el mismo filtro que todas las demás.
 
-## Etapas
+Cada paso tiene un color:
+- 🟠 **Naranja = lo hace la IA, en horas.** Los agentes de `.claude/agents/` ejecutan estos pasos de punta a punta y entregan el resultado para revisión.
+- 🟢 **Verde = criterio.** O lo haces tú, o no lo hace nadie. Un agente puede preparar el análisis y la recomendación, pero la decisión final es tuya — no se avanza al siguiente paso sin que la tomes explícitamente.
 
-### 0. Hipótesis (`trading-strategy-researcher`)
-Toda estrategia nace como una hipótesis escrita en `docs/ideas/NNN-nombre.md`, con la lógica económica de por qué debería funcionar y en qué régimen debería fallar. Sin esto, no se avanza a la etapa 1 — evita construir sobre patrones puramente numéricos sin explicación.
+## Los 8 pasos
 
-### 1. Backtest in-sample
-- Definir universo, timeframe, periodo y **fijar de antemano** el corte in-sample/out-of-sample antes de mirar resultados fuera de muestra.
-- Métricas mínimas a reportar: Sharpe, Sortino (si hay asimetría), max drawdown y duración del drawdown, win rate, profit factor, expectancy por trade, número total de trades.
-- Costos realistas obligatorios: comisión, spread, slippage del instrumento específico (no un valor genérico).
+### 01 · Hipótesis 🟢
+**Qué es:** el core logic. Qué comportamiento explotas y por qué existe.
+**Agente:** `trading-strategy-researcher` redacta la hipótesis (universo, timeframe, regla propuesta, por qué debería existir esa ineficiencia, en qué régimen debería fallar) en `docs/ideas/NNN-nombre.md`.
+**Por qué es verde:** ningún agente puede decidir *qué* ineficiencia vale la pena perseguir ni si la explicación económica es creíble — eso es criterio de trading, no un cálculo. El agente propone, tú decides si la hipótesis pasa a AED.
 
-### 2. Validación out-of-sample
-- Se corre exactamente la misma estrategia (mismos parámetros, sin retocar) sobre el periodo reservado.
-- Si el rendimiento out-of-sample es sustancialmente peor que in-sample (regla práctica: caída de Sharpe >50% o pérdida de la señal de significancia estadística), la estrategia se marca **RECHAZAR** o **ITERAR**, no se re-optimiza sobre el mismo set out-of-sample (eso solo lo convierte en in-sample otra vez).
+### 02 · AED (Análisis Exploratorio de Datos) 🟢
+**Qué es:** ¿hay un edge estructural en los datos, o es ruido?
+**Agente:** `trading-data-analyst` explora los datos históricos del instrumento/hipótesis: distribución de retornos condicionada al patrón propuesto, tamaño de muestra disponible, estacionalidad real vs. casualidad, comparación contra un benchmark aleatorio/shuffle.
+**Por qué es verde:** distinguir "hay señal" de "esto es ruido con suerte" requiere juicio sobre significancia práctica, no solo estadística — el agente entrega la evidencia, tú decides si hay suficiente base para codificar reglas.
 
-### 3. Walk-forward (cuando el histórico lo permite)
-- Ventanas rodantes de entrenamiton/validación en vez de un único corte estático, para detectar si el edge es estable en el tiempo o es un artefacto de un periodo particular.
+### 03 · Reglas 🟠
+**Qué es:** entrada, salida, filtros, riesgo — en código. Blanco o negro, sin ambigüedad ("depende del contexto" no es una regla).
+**Agentes:** `pinescript-developer` (prototipo en TradingView) y/o `mql5-developer` (EA en MetaTrader 5) traducen la hipótesis validada en AED a reglas exactas y codificadas.
+**Salida:** código que compila, con cada condición de entrada/salida/filtro/riesgo explícita — nada de "si se ve bien, entrar".
 
-### 4. Test de robustez / anti-overfitting (al menos uno)
-- **Sensibilidad de parámetros**: variar cada parámetro clave ±20-30% y verificar que el resultado no colapsa (una estrategia robusta no depende de un valor exacto).
-- **Monte Carlo de reordenamiento de trades**: mezclar el orden de los trades históricos y recalcular el drawdown máximo posible — el drawdown "de la peor secuencia posible" suele ser peor que el observado en el orden original.
-- **Bootstrap / remuestreo**: para verificar que el retorno medio por trade es estadísticamente distinto de cero dado el tamaño de muestra.
+### 04 · Backtest 🟠
+**Qué es:** in-sample / out-of-sample. **La prueba fuera de muestra se usa una sola vez.**
+**Agente:** `trading-quant-backtester` fija el corte IS/OOS *antes* de mirar resultados, corre el backtest in-sample, y corre el out-of-sample exactamente una vez con los parámetros ya fijados — si el resultado no gusta, no se vuelve a tocar el mismo corte OOS (eso lo convierte en in-sample y contamina la prueba). Se necesita un periodo OOS nuevo o más historia.
+**Costos:** comisión, spread y slippage reales del instrumento, no genéricos.
 
-### 5. Tamaño de muestra mínimo
-- Menos de ~30 trades en el set de validación: no hay evidencia estadística suficiente para una conclusión fuerte. Se documenta como "evidencia preliminar" y se pide más historia o más instrumentos correlacionados antes de asignar capital real.
+### 05 · Optimización 🟠
+**Qué es:** sensibilidad de parámetros. Se busca una **meseta, no un pico.**
+**Agente:** `trading-quant-backtester` varía cada parámetro clave ±20-30% y grafica/reporta cómo cambia la métrica objetivo. Un parámetro que solo funciona en un valor exacto (pico aislado) es la firma clásica de overfitting; una meseta ancha donde valores cercanos también funcionan razonablemente es la señal de un edge real.
 
-### 6. Veredicto
-`trading-quant-backtester` emite uno de tres veredictos, registrados en `ESTRATEGIAS.md`:
-- **RECHAZAR**: no hay edge, o no sobrevive a costos/OOS.
-- **ITERAR**: hay señal pero requiere ajuste específico (se documenta cuál) o más datos.
-- **PROMOVER A RISK-SIZING**: pasa los checks mínimos → pasa a `trading-risk-manager` para definir tamaño de posición y presupuesto de riesgo dentro del portafolio.
+### 06 · Robustez 🟠
+**Qué es:** stress test, Montecarlo, slippage y comisiones reales.
+**Agente:** `trading-quant-backtester` corre Monte Carlo de reordenamiento de trades (para estimar el peor drawdown posible con la misma serie de resultados en otro orden), y stress-testea con slippage/comisiones más adversos que el caso base, para ver si el edge sobrevive con margen, no justo en el límite.
+**Veredicto de cierre de 04-06:** `RECHAZAR` (no hay edge o no sobrevive a costos/OOS/robustez) · `ITERAR` (hay señal pero requiere ajuste específico, documentado) · `PROMOVER A SIZING` (pasa los checks mínimos).
 
-### 7. Forward test en demo
-Antes de cuenta real, toda estrategia corre en cuenta demo con el tamaño de posición ya definido por `trading-risk-manager`, durante un periodo mínimo razonable para el timeframe de la estrategia (ej. no menos de 20-30 operaciones reales en demo para una intradía). El forward test en demo es la única validación que usa datos genuinamente no vistos por el desarrollador en absoluto — trátalo como la prueba más importante, no como un trámite.
+### 07 · Sizing · RM 🟢
+**Qué es:** cuánto riesgo merece esta estrategia. Drawdown esperado. Portafolio.
+**Agente:** `trading-risk-manager` calcula tamaño de posición (riesgo % por operación, tope de fractional-Kelly), el drawdown esperado con ese tamaño, y cómo encaja dentro del presupuesto de riesgo del portafolio completo (asumiendo que en un régimen de estrés las correlaciones entre estrategias suben, no se mantienen en su nivel histórico "normal").
+**Por qué es verde:** cuánto riesgo estás dispuesto a tolerar por esta estrategia específica, dado tu capital y tus otras posiciones, es una decisión personal — el agente calcula el rango razonable y el peor caso, tú fijas el número final.
 
-### 8. Cuenta real
-Solo tras pasar 0-7. Se inicia con una fracción del tamaño de posición objetivo (ej. 25-50%) y se escala gradualmente si el comportamiento en real es consistente con el forward test.
+### 08 · Deploy 🟢
+**Qué es:** incubación en demo, servidor, monitoreo del edge.
+**Agente:** `trading-deploy-monitor` define el plan de incubación (cuenta demo, tiempo mínimo/número mínimo de operaciones antes de real, servidor/VPS donde correrá 24/7 si aplica), y el protocolo de monitoreo continuo para detectar *edge decay* (degradación del edge en vivo respecto al backtest) una vez en producción.
+**Por qué es verde:** decidir cuándo el comportamiento en demo es "suficientemente parecido" al backtest para pasar a real, y cuándo el edge se degradó lo bastante como para pausar la estrategia, es una decisión que exige tu criterio sobre el momento y el contexto de mercado — ningún agente debe tomarla de forma autónoma.
 
-## Señales de alerta de overfitting (revisar siempre)
+## Puerta final: `trading-code-reviewer`
+Antes de que cualquier estrategia entre a demo (fin del paso 03/04, previo al 08), `trading-code-reviewer` audita el código específicamente por look-ahead bias, repainting, manejo de horario/sesión, gestión de órdenes y que el circuit breaker de `Include/RiskManager.mqh` esté realmente integrado. No es uno de los 8 pasos numerados — es un gate transversal que se aplica cada vez que hay código nuevo o modificado en pasos 03-06.
+
+## Señales de alerta de overfitting (revisar en 04-06)
 - Muchos parámetros libres relativo al número de trades disponibles.
 - El rendimiento depende de 1-2 operaciones extremas ("home runs") más que de una ventaja consistente.
-- Parámetros "raros" sin justificación económica (ej. un umbral que solo funciona en un valor muy específico, sin una razón de por qué ese valor y no uno cercano).
-- El backtest usa datos de un instrumento/periodo con supervivencia sesgada (ej. solo acciones que siguen listadas hoy).
+- Parámetros "raros" sin justificación económica (pico aislado, no meseta — ver paso 05).
+- Datos con supervivencia sesgada (ej. solo instrumentos que siguen listados hoy).
+- Menos de ~30 trades en el set de validación: evidencia preliminar, no concluyente — se documenta como tal, no se fuerza una conclusión fuerte.
 
 ## Estado vivo
-Cada estrategia debe tener su fila correspondiente en [`../ESTRATEGIAS.md`](../ESTRATEGIAS.md) con la etapa actual, fecha de última actualización y el veredicto vigente.
+Cada estrategia tiene su fila en [`../ESTRATEGIAS.md`](../ESTRATEGIAS.md) indicando en cuál de los 8 pasos está, la fecha, y el veredicto vigente.
