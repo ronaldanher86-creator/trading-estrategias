@@ -45,5 +45,34 @@ Esta es la estrategia con el perfil de riesgo de cola más documentado de las tr
 - **Apalancamiento**: el carry trade retail suele operarse apalancado para que el diferencial de tasas sea significativo frente al capital — esto amplifica tanto el carry cobrado como las pérdidas de un movimiento de precio adverso, y debe pasar estrictamente por el sizing conservador de `trading-risk-manager` (paso 07).
 - **Costos de swap/spread** pueden variar por bróker y por condiciones de mercado (ampliarse justo en los momentos de estrés donde más se necesita salir).
 
+## AED (paso 02) — 2026-09-16
+
+**Pares elegidos:** AUD/JPY y NZD/JPY — los dos pares de carry más clásicos del mercado (dólar australiano y neozelandés, tasas relativamente altas durante casi todo el periodo, contra el yen, con tasas cercanas a cero durante la mayor parte de estos 22 años). Datos mensuales reales de TradingView, **2004-05 a 2026-08 (269 barras cada uno)**.
+
+### Qué se midió (y qué NO)
+Esto mide **solo la apreciación/depreciación de precio** de la divisa de carry, no el carry trade completo — no se incluye el swap/rollover diario que efectivamente cobra (o paga) un bróker retail. Según la hipótesis del paper (la UIRP no se sostiene, las divisas de tasa alta tienden a apreciarse en vez de depreciarse), la sola apreciación de precio ya debería mostrar una deriva positiva en promedio — si además se le suma el swap cobrado, el carry trade completo debería verse mejor todavía. Si el precio por sí solo no muestra deriva, el edge del carry trade depende enteramente de que el swap compense, lo cual no se puede verificar sin acceso al bróker real del usuario.
+
+### Resultados
+
+| Par | Retorno medio mensual | Anualizado | Volatilidad anualizada | Sharpe (solo precio) | p-valor (signo aleatorio) | Max drawdown | Win rate |
+|---|---|---|---|---|---|---|---|
+| AUD/JPY | +0.130% | +1.55% | 13.56% | 0.11 | 0.597 | **−47.0%** (sep-2007 a dic-2008) | 54.9% |
+| NZD/JPY | +0.095% | +1.14% | 14.05% | 0.08 | 0.706 | **−51.9%** (may-2007 a dic-2008) | 55.2% |
+
+### Lectura honesta
+- **La dirección es la correcta** (deriva positiva, no negativa, consistente con la anomalía UIRP que describe el paper), pero **no es estadísticamente significativa** en ninguno de los dos pares — el retorno anualizado de ~1.1-1.5% vía apreciación de precio pura es pequeño frente a una volatilidad anualizada de ~14%, y el test de signo aleatorio no rechaza la hipótesis de que la deriva observada sea puro ruido.
+- **El riesgo de cola no es teórico, aparece directamente en los datos**: ambos pares perdieron **entre 47% y 52% de su valor** en la Crisis Financiera Global de 2007-2008 — exactamente el "crash risk" documentado por Brunnermeier, Nagel & Pedersen que ya se había señalado como el riesgo dominante de esta estrategia en el documento de hipótesis. No es una advertencia abstracta: es lo que pasó, con estos pares específicos, la última vez que hubo una crisis de "risk-off" seria.
+- El win rate mensual (~55%) es apenas mejor que una moneda al aire, consistente con "muchos meses ganando poco, pocos meses perdiendo mucho" — el patrón clásico de "recoger monedas frente a la apisonadora" que describe la literatura de carry trade.
+
+### Sesgos y limitaciones
+- No se midió el swap/rollover real — todo el caso a favor del carry trade depende de esa pieza que aquí no se pudo verificar.
+- Un solo episodio de crisis (2007-2008) domina el drawdown máximo de ambos pares — no hay forma de saber, con un solo evento en la muestra, si "−50%" es representativo del peor caso futuro o si el próximo episodio de estrés sería distinto (mejor o peor).
+- 268 observaciones mensuales suena bien por encima del mínimo de ~30, pero son altamente correlacionadas entre sí en el tiempo (autocorrelación de régimen) y ambos pares (AUD/JPY, NZD/JPY) se mueven casi juntos — en la práctica hay mucho menos de "2×268" información independiente.
+
+### Recomendación
+**No pasar al paso 03 todavía.** La apreciación de precio por sí sola no muestra un edge estadísticamente significativo, y el caso a favor de la estrategia depende de una pieza (el swap real) que no se pudo medir aquí. Antes de codificar cualquier regla:
+1. Verificar con el bróker real del usuario el swap efectivo en estos pares (o similares), y calcular si ese swap, sumado a esta deriva de precio débil, produce un retorno esperado neto positivo después de costos.
+2. Si se decide continuar, el paso 07 (Sizing·RM) debe dimensionar la posición asumiendo explícitamente un escenario de −50% como el observado en 2008, no solo la volatilidad "normal" fuera de crisis.
+
 ## Siguiente paso sugerido
-Pasar a `trading-data-analyst` (paso 02, AED) para: (a) verificar el swap real ofrecido por el bróker del usuario en 2-3 pares candidatos de alto diferencial de tasas, comparado contra el diferencial de tasas oficial, y (b) revisar el historial de esos pares en periodos de estrés de mercado conocidos, para dimensionar realistamente el peor caso antes de escribir ninguna regla de entrada en el paso 03.
+Verificar el swap real del bróker antes de cualquier otra cosa — sin esa pieza, no hay forma de saber si el carry trade completo (no solo la apreciación de precio) tiene edge neto de costos. Si el usuario puede aportar esa información, se puede recalcular el retorno esperado total y decidir si pasa a paso 03.

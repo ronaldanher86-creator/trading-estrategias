@@ -10,7 +10,7 @@ Los 8 pasos del Método TIS: **01** Hipótesis 🟢 · **02** AED 🟢 · **03**
 | J-Hook (continuación de tendencia) | Por definir | `docs/ideas/001-j-hook-breakout.md` | 01 · Hipótesis — 6 ambigüedades de definición sin resolver, sin evidencia de terceros | Sin evaluar | — | 2026-09-16 |
 | Momentum de series de tiempo multi-activo | Oro / S&P 500 / EUR-USD (probado) | `docs/ideas/002-momentum-series-de-tiempo-multiactivo.md` | 02 · AED — sin edge detectable en la versión simple (single-instrument, sin vol-scaling) probada sobre 2011-2026 | Resultado nulo, no pasa a 03 sin ampliar el test | — | 2026-09-16 |
 | Trading de pares (dólar-neutral) | XOM/CVX (probado, 14 meses) | `docs/ideas/003-trading-de-pares.md` | 02 · AED — señal direccionalmente favorable (correlación z/reversión −0.41) pero n real=18, insuficiente para 03 | Evidencia preliminar, ampliar muestra antes de avanzar | — | 2026-09-16 |
-| Carry trade FX | Pares de divisas (candidato) | `docs/ideas/004-carry-trade-fx.md` | 01 · Hipótesis — de "151 Estrategias de Trading" (Kakushadze & Serur) | Sin evaluar | — | 2026-09-16 |
+| Carry trade FX | AUD/JPY, NZD/JPY (probado, 22 años) | `docs/ideas/004-carry-trade-fx.md` | 02 · AED — deriva de precio positiva pero no significativa (p=0.60/0.71); drawdown de -47/-52% en 2008 confirma el riesgo de cola | No pasa a 03 sin verificar swap real del bróker | — | 2026-09-16 |
 
 ## Cómo añadir una estrategia nueva
 1. `trading-strategy-researcher` crea la hipótesis en `docs/ideas/NNN-nombre.md` — **01 Hipótesis**.
