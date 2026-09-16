@@ -82,3 +82,17 @@ No pasar directamente al paso 03 (Reglas) con la especificación actual (single-
 2. **Repriorizar**: dado que esta primera pasada no encontró señal y las ideas 003 (trading de pares) y 004 (carry trade) todavía no se han sometido a AED, podría ser más productivo testear esas antes de invertir más tiempo en una segunda pasada de momentum.
 
 La decisión de cuál camino tomar es del usuario — ambos son válidos.
+
+### Confirmación independiente con datos de TradingView — 2026-09-16 (mismo día, actualización)
+
+Tras resolver la conexión CDP con TradingView Desktop (ver notas de la sesión), se repitió exactamente el mismo test con la fuente de datos real de la plataforma, con una muestra bastante más larga:
+
+| Instrumento | Fuente | Periodo | n | Diferencia (+ vs −) | p-valor |
+|---|---|---|---|---|---|
+| Oro | `TVC:GOLD` | 2001-09 a 2026-08 (300 barras) | 287 | +0.631% | 0.351 |
+| S&P 500 | `TVC:SPX` | 2001-10 a 2026-09 (300 barras) | 287 | **+0.128%** (antes era −0.575% con Yahoo) | 0.839 |
+| EUR/USD | `OANDA:EURUSD` | 2002-04 a 2026-08 (293 barras) | 280 | **−0.264%** (antes era +0.055% con Yahoo) | 0.395 |
+
+**El resultado nulo se confirma y se refuerza.** Con casi el doble de historia (24-25 años vs. 14-15 con Yahoo Finance), ningún instrumento se acerca a significancia estadística. Un dato adicional relevante: el **signo de la diferencia se invirtió** en S&P 500 y en EUR/USD entre el pase con Yahoo Finance y este pase con TradingView (periodos distintos, aunque solapados). Que el signo del efecto cambie según qué años exactos se incluyan es, en sí mismo, evidencia de que lo que se está midiendo es ruido alrededor de cero, no una señal estable — un edge real no debería voltear de signo simplemente por extender la muestra hacia atrás en el tiempo.
+
+Esto no cambia la recomendación anterior: no se avanza al paso 03 con la especificación simple actual. Si se retoma esta idea, debe ser con la versión cross-sectional ponderada por volatilidad del paper (Ecuación 474-480), no con más repeticiones de la versión single-instrument, que ya fue puesta a prueba dos veces con fuentes y periodos distintos y en ambas fue indistinguible del azar.
