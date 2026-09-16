@@ -37,5 +37,48 @@ Mercados en rango/choppy, y específicamente en **reversiones bruscas de tendenc
 - **Costos de rebalanceo**: si se implementa con rebalanceo frecuente sobre múltiples instrumentos, el costo de transacción retail (spread, comisión) puede erosionar buena parte del edge académico (medido usualmente con costos institucionales menores).
 - **Simplificación de N-activos a 1 instrumento**: la versión que se sugiere implementar primero (por instrumento, independiente) pierde el beneficio de diversificación de la versión de portafolio completo del paper — es un punto de partida más simple, no la estrategia completa tal como está descrita.
 
-## Siguiente paso sugerido
-Antes del paso 02 (AED), decidir junto con el usuario: (a) qué instrumento(s) usar como primer caso de prueba, (b) el lookback T exacto, y (c) si se usa el signo binario simple o el suavizado tanh — son las mismas ambigüedades que el paper deja abiertas a propósito ("no hay un método fundamental para fijar los parámetros"), así que hay que fijarlas aquí, no durante el backtest.
+## AED (paso 02) — 2026-09-16
+
+**Parámetros fijados para esta primera pasada** (no confirmados con el usuario previamente, elegidos como default razonable y documentados aquí para que se puedan ajustar): lookback T = 12 meses (el más citado en la literatura de referencia, Moskowitz-Ooi-Pedersen), horizonte de evaluación = retorno del mes siguiente, señal = signo binario simple del retorno acumulado de 12 meses (sin suavizado tanh, para medir el edge crudo antes de añadir ese refinamiento).
+
+**Nota metodológica importante**: lo que se testeó aquí es la versión **más simple posible** de la idea — momentum de un solo instrumento, sin ponderar por volatilidad ni construir el portafolio cross-sectional dólar-neutral que describe el paper (Ecuación 474-480) y que usa la literatura académica citada. Es una prueba deliberadamente débil/conservadora de la hipótesis, no una réplica fiel del estudio original.
+
+### Fuente de datos
+TradingView Desktop no pudo conectarse vía CDP en este entorno (la app instalada vía Microsoft Store no expone el puerto de depuración pese a estar corriendo — limitación de sandboxing, no de los datos). Se usó como alternativa la API pública de Yahoo Finance (`query1.finance.yahoo.com/v8/finance/chart/`), datos mensuales:
+
+| Instrumento | Símbolo | Periodo | Barras mensuales |
+|---|---|---|---|
+| Oro (futuro continuo) | `GC=F` | 2011-10 a 2026-09 | 154 |
+| S&P 500 (índice) | `^GSPC` | 2011-10 a 2026-09 | 181 |
+| EUR/USD (spot) | `EURUSD=X` | 2011-09 a 2026-09 | 181 |
+
+### Resultados (signo del retorno 12m vs. retorno del mes siguiente)
+
+| Instrumento | n útil | Retorno medio \| señal + | Retorno medio \| señal − | Diferencia | p-valor (permutación, 20.000 reordenamientos) |
+|---|---|---|---|---|---|
+| Oro | 141 (88+/53−) | +0.891% | +0.307% | +0.584% | **0.463** |
+| S&P 500 | 168 (144+/24−) | +0.913% | +1.488% | **−0.575%** (signo invertido) | **0.522** |
+| EUR/USD | 168 (76+/92−) | −0.043% | −0.098% | +0.055% | **0.862** |
+
+El test de permutación baraja aleatoriamente qué meses se etiquetan "señal positiva" vs. "negativa" (preservando el tamaño de cada grupo) 20.000 veces, y mide qué fracción de esos reordenamientos al azar produce una diferencia de medias tan grande o mayor que la observada. Un p-valor bajo (convencionalmente <0.05) indicaría que la diferencia real difícilmente se explica por azar. Aquí **ningún instrumento se acerca a ese umbral** — los tres resultados son estadísticamente indistinguibles de barajar los datos al azar.
+
+### Lectura honesta
+- **No se encontró edge estructural con esta especificación simple, en esta muestra (2011-2026), en ninguno de los 3 instrumentos.** El Oro y EUR/USD muestran una diferencia con el signo "correcto" (momentum positivo antecede retornos algo mayores) pero pequeña y no significativa. El **S&P 500 muestra el signo invertido**: los meses que siguieron a una señal negativa tuvieron en promedio mejor retorno que los que siguieron a señal positiva — consistente con que 2011-2026 fue, en el índice, un mercado alcista secular con caídas que se recuperaron rápido (rebote en V), un régimen donde el momentum de 12 meses no es la lectura correcta.
+- Esto **no refuta** la literatura académica citada (que usa décadas más de historia, decenas de instrumentos simultáneos, y ponderación por volatilidad) — refuta específicamente que **esta versión simplificada, en este periodo, en estos 3 instrumentos** tenga un edge detectable. Son cosas distintas y hay que ser precisos sobre cuál se está afirmando.
+- Tamaño de muestra: 141-168 observaciones mensuales por instrumento es modesto pero por encima del mínimo de ~30 — no es un problema de tamaño de muestra, es que la diferencia observada es simplemente pequeña frente al ruido mes a mes (desviación estándar mensual de 2-4.6% vs. diferencias de señal de 0.05-0.58%).
+
+### Sesgos de datos detectados
+- `GC=F` es un futuro continuo (front-month) de Yahoo Finance — puede tener pequeños saltos en los rollos de contrato que no siempre están perfectamente ajustados; no se verificó la metodología de ajuste de Yahoo en detalle.
+- `^GSPC` es el índice de precio, sin dividendos reinvertidos — correcto para momentum de precio puro, pero no comparable directamente a un retorno total.
+- No hay sesgo de supervivencia relevante (son un índice, un futuro de materia prima y un par de FX, no una canasta de acciones individuales que puedan salir de listado).
+- No se probó una fuente de datos alternativa para contrastar — los números de Yahoo Finance no fueron cruzados contra una segunda fuente.
+
+### Calificación de confianza
+**Preliminar, con resultado nulo.** No es evidencia de que el momentum "no exista" en general (la literatura de terceros sigue siendo la citada en el documento de hipótesis), pero sí es evidencia de que **esta implementación mínima no muestra señal explotable** en los instrumentos y periodo probados.
+
+### Recomendación
+No pasar directamente al paso 03 (Reglas) con la especificación actual (single-instrument, sin ponderación por volatilidad). Dos caminos razonables antes de descartar la idea:
+1. **Probar la versión más fiel al paper**: cross-sectional, con una canasta más amplia de instrumentos (no solo 3) y ponderación por volatilidad (Ecuación 474-480), que es lo que realmente respalda la literatura citada — la versión testeada aquí era deliberadamente la más débil posible.
+2. **Repriorizar**: dado que esta primera pasada no encontró señal y las ideas 003 (trading de pares) y 004 (carry trade) todavía no se han sometido a AED, podría ser más productivo testear esas antes de invertir más tiempo en una segunda pasada de momentum.
+
+La decisión de cuál camino tomar es del usuario — ambos son válidos.
